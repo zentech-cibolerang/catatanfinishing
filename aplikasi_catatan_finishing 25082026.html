@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FinishLog - Catatan Finishing & Operasional</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0284c7',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body class="h-full text-slate-800 flex flex-col antialiased">
+
+  <!-- Top Navigation Header -->
+  <header class="bg-slate-900 text-white shadow-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <!-- Logo & Title -->
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-sky-500/30">
+            <i class="fa-solid fa-layer-group text-lg"></i>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+              FinishLog
+              <span class="text-[10px] bg-sky-500/20 text-sky-300 border border-sky-400/30 font-semibold px-2 py-0.5 rounded-full">v2.5</span>
+            </h1>
+            <p class="text-xs text-slate-400 hidden sm:block">Sistem Catatan & Laporan Finishing Cetak</p>
+          </div>
+        </div>
+
+        <!-- Connection Status & Quick Info -->
+        <div class="flex items-center space-x-3">
+          <div id="apiStatusBadge" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700">
+            <span class="w-2 h-2 rounded-full bg-slate-500" id="apiStatusDot"></span>
+            <span id="apiStatusText" class="hidden md:inline">API: Belum Terhubung</span>
+          </div>
+          <div class="text-right hidden sm:block">
+            <div id="currentDateDisplay" class="text-xs font-semibold text-slate-200">--/--/----</div>
+            <div id="currentTimeDisplay" class="text-[10px] text-slate-400 font-mono">00:00:00</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Navigation Tabs Bar -->
+    <div class="bg-slate-800 border-t border-slate-700/60 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto flex space-x-1 overflow-x-auto py-2 scrollbar-none">
+        <button onclick="switchTab('input')" id="tabBtn-input" class="tab-btn px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 whitespace-nowrap bg-sky-600 text-white shadow-sm">
+          <i class="fa-solid fa-pen-to-square"></i> Form Input
+        </button>
+        <button onclick="switchTab('laporan')" id="tabBtn-laporan" class="tab-btn px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 whitespace-nowrap text-slate-300 hover:text-white hover:bg-slate-700">
+          <i class="fa-solid fa-table-list"></i> Laporan Harian
+        </button>
+        <button onclick="switchTab('grafik')" id="tabBtn-grafik" class="tab-btn px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 whitespace-nowrap text-slate-300 hover:text-white hover:bg-slate-700">
+          <i class="fa-solid fa-chart-pie"></i> Statistik
+        </button>
+        <button onclick="switchTab('api')" id="tabBtn-api" class="tab-btn px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 whitespace-nowrap text-slate-300 hover:text-white hover:bg-slate-700">
+          <i class="fa-solid fa-cloud-arrow-up"></i> Google Sheet API
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Custom Modal Konfirmasi Hapus -->
+    <div id="deleteConfirmModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-200 text-center space-y-4">
+        <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto text-xl">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-slate-800">Hapus Catatan Finishing?</h3>
+          <p class="text-xs text-slate-500 mt-1">Tindakan ini tidak dapat dibatalkan. Apakah Anda yakin ingin menghapus catatan JO ini?</p>
+        </div>
+        <div class="flex items-center justify-center gap-3 pt-2">
+          <button onclick="closeDeleteModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition">
+            Batal
+          </button>
+          <button id="confirmDeleteBtn" class="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-md shadow-rose-600/20">
+            Ya, Hapus Data
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 1: FORM INPUT -->
+    <section id="tab-input" class="tab-content block space-y-6">
+      
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        
+        <!-- Header Form -->
+        <div class="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+          <div>
+            <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-clipboard-list text-sky-600"></i>
+              Form Catatan Pengerjaan Finishing
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">Isi data pekerjaan finishing sesuai baris petunjuk operasional.</p>
+          </div>
+          <div>
+            <input type="date" id="inputDate" class="bg-white border border-slate-300 text-slate-700 text-xs rounded-lg font-semibold px-3 py-1.5 focus:ring-2 focus:ring-sky-500 focus:outline-none shadow-sm">
+          </div>
+        </div>
+
+        <form id="finishingForm" onsubmit="handleFormSubmit(event)" class="p-6 space-y-6">
+          
+          <!-- BARIS 1: No JO | No PO | Nama Konsumen | Brand -->
+          <div class="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80">
+            <div class="text-xs font-bold text-sky-800 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <span class="w-5 h-5 rounded-full bg-sky-600 text-white flex items-center justify-center text-[10px]">1</span>
+              Informasi Pekerjaan.
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">No. JO <span class="text-rose-500">*</span></label>
+                <input type="text" id="inputJO" inputmode="numeric" required maxlength="6" pattern="[0-9]{6}" placeholder="......" oninput="this.value = this.value.replace(/[^0-9]/g, ''); if(this.value.length === 6) document.getElementById('inputPO1').focus();" class="w-full text-xs bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-bold font-mono focus:ring-2 focus:ring-sky-500 focus:outline-none transition" title="Maksimal & Wajib 6 Digit Angka">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">No. PO</label>
+                <div class="flex items-center gap-1">
+                  <input type="text" id="inputPO1" inputmode="numeric" maxlength="3" placeholder="..." oninput="this.value = this.value.replace(/[^0-9]/g, ''); if(this.value.length === 3) document.getElementById('inputPO3').focus();" class="w-1/3 text-xs bg-white border border-slate-300 rounded-lg px-2 py-2 text-center text-slate-800 font-mono font-bold focus:ring-2 focus:ring-sky-500 focus:outline-none transition" title="3 Digit Angka">
+                  <span class="text-slate-400 font-bold text-xs">-</span>
+                  <input type="text" id="inputPO2" value="POPROC" readonly class="w-1/3 text-xs bg-slate-100 border border-slate-300 rounded-lg px-1 py-2 text-center text-slate-700 font-mono font-bold select-none cursor-not-allowed" title="Kode POPROC">
+                  <span class="text-slate-400 font-bold text-xs">-</span>
+                  <input type="text" id="inputPO3" inputmode="numeric" maxlength="4" placeholder="...." oninput="this.value = this.value.replace(/[^0-9]/g, ''); if(this.value.length === 4) document.getElementById('inputKonsumen').focus();" class="w-1/3 text-xs bg-white border border-slate-300 rounded-lg px-2 py-2 text-center text-slate-800 font-mono font-bold focus:ring-2 focus:ring-sky-500 focus:outline-none transition" title="4 Digit Angka">
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Konsumen <span class="text-rose-500">*</span></label>
+                <input type="text" id="inputKonsumen" required placeholder="..." oninput="this.value = this.value.toUpperCase()" class="w-full text-xs bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 uppercase focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Brand</label>
+                <input type="text" id="inputBrand" placeholder="..." oninput="this.value = this.value.toUpperCase()" class="w-full text-xs bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 uppercase focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+              </div>
+            </div>
+          </div>
+
+          <!-- BARIS 2: Nama Bahan | Ukuran/m | Qty | Mesin (Dynamic Items Container) -->
+          <div class="p-4 bg-sky-50/50 rounded-xl border border-sky-100">
+            <div class="flex items-center justify-between mb-3">
+              <div class="text-xs font-bold text-sky-800 uppercase tracking-wider flex items-center gap-1.5">
+                <span class="w-5 h-5 rounded-full bg-sky-600 text-white flex items-center justify-center text-[10px]">2</span>
+                Detail Bahan, Ukuran & QTY.
+              </div>
+              <button type="button" onclick="addItemRow()" class="px-3 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-plus"></i> Tambah Ukuran / Item
+              </button>
+            </div>
+            
+
+            <!-- Dynamic Items Container -->
+            <div id="itemsContainer" class="space-y-3">
+              <!-- Item rows dynamically created via JS -->
+            </div>
+          </div>
+
+          <!-- BARIS 3: Operator Finishing -->
+          <div class="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80">
+            <div class="text-xs font-bold text-sky-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <span class="w-5 h-5 rounded-full bg-sky-600 text-white flex items-center justify-center text-[10px]">3</span>
+              Operator Finishing <span class="text-rose-500">*</span>
+            </div>
+            <div class="space-y-2">
+              <div class="flex gap-2">
+                <input type="text" id="operatorInput" onkeydown="handleOperatorKeydown(event)" oninput="this.value = this.value.toUpperCase()" placeholder="Ketik nama operator lalu tekan Enter atau klik Tambah" class="flex-1 text-xs bg-white border border-slate-300 rounded-lg px-3 py-2 uppercase focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                <button type="button" onclick="addOperatorFromInput()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold transition">
+                  <i class="fa-solid fa-user-plus"></i> Tambah
+                </button>
+              </div>
+              
+              <!-- Operator Tags List -->
+              <div id="operatorTagsList" class="flex flex-wrap gap-1.5 pt-1 min-h-[32px]">
+                <!-- Operator badges render here -->
+              </div>
+              <p class="text-[11px] text-slate-400">Bisa memasukkan lebih dari 1 nama operator yang mengerjakan.</p>
+            </div>
+          </div>
+
+          <!-- BARIS 4: Jenis Finishing -->
+          <div class="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80">
+            <div class="text-xs font-bold text-sky-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <span class="w-5 h-5 rounded-full bg-sky-600 text-white flex items-center justify-center text-[10px]">4</span>
+              Jenis Finishing <span class="text-rose-500">*</span>
+            </div>
+            
+            <textarea id="formFinishing" rows="3" required placeholder="..." oninput="this.value = this.value.toUpperCase()" class="w-full text-xs bg-white border border-slate-300 rounded-lg p-3 text-slate-800 uppercase focus:ring-2 focus:ring-sky-500 focus:outline-none transition"></textarea>
+          </div>
+
+          <!-- BARIS 5: Catatan Tambahan / Opsional -->
+          <div class="p-5 bg-slate-50/80 rounded-xl border border-slate-200/80">
+            <div class="text-xs font-bold text-sky-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <span class="w-5 h-5 rounded-full bg-sky-600 text-white flex items-center justify-center text-[10px]">5</span>
+              Catatan Tambahan / Opsional
+            </div>
+            
+            <textarea id="inputCatatan" rows="3" placeholder="PACKING : DIGULUNG / LIPAT." oninput="this.value = this.value.toUpperCase()" class="w-full text-xs bg-white border border-slate-300 rounded-lg p-3 text-slate-800 uppercase focus:ring-2 focus:ring-sky-500 focus:outline-none transition"></textarea>
+          </div>
+
+          <!-- BARIS 6: Shift | Kepala Finishing | Kepala Shift -->
+          <div class="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80">
+            <div class="text-xs font-bold text-sky-800 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <span class="w-5 h-5 rounded-full bg-sky-600 text-white flex items-center justify-center text-[10px]">6</span>
+              Informasi Operasional Shift & Penanggung Jawab
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Shift Kerja <span class="text-rose-500">*</span></label>
+                <select id="inputShift" required class="w-full text-xs bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-semibold focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                  <option value="Shift 1">--- Pilih Shift ---</option>
+                  <option value="Shift Pagi">Shift Pagi</option>
+                  <option value="Shift Malam">Shift Malam</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Kepala Finishing</label>
+                <input type="text" id="inputKepalaFinishing" placeholder="Nama Kepala Finishing" oninput="this.value = this.value.toUpperCase()" class="w-full text-xs bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 uppercase focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Kepala Shift</label>
+                <input type="text" id="inputKepalaShift" placeholder="Nama Kepala Shift" oninput="this.value = this.value.toUpperCase()" class="w-full text-xs bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 uppercase focus:ring-2 focus:ring-sky-500 focus:outline-none transition">
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+            <button type="button" onclick="resetForm()" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-2">
+              <i class="fa-solid fa-rotate-left"></i> Reset Form
+            </button>
+            <button type="submit" class="px-6 py-2.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-sky-500/25 transition flex items-center gap-2">
+              <i class="fa-solid fa-floppy-disk"></i> Simpan Laporan Finishing
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+    </section>
+
+    <!-- TAB 2: LAPORAN HARIAN -->
+    <section id="tab-laporan" class="tab-content hidden space-y-6">
+      
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        
+        <!-- Filter Bar -->
+        <div class="bg-slate-50 border-b border-slate-200 p-4 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div class="flex flex-wrap items-center gap-3">
+            <div>
+              <label class="block text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1">Filter Tanggal</label>
+              <input type="date" id="filterReportDate" onchange="renderReportTable()" class="bg-white border border-slate-300 text-xs rounded-lg font-semibold px-3 py-1.5 text-slate-700 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1">Cari Laporan</label>
+              <div class="relative">
+                <input type="text" id="searchReportInput" onkeyup="renderReportTable()" placeholder="Cari JO, Konsumen, Bahan..." class="bg-white border border-slate-300 text-xs rounded-lg pl-8 pr-3 py-1.5 text-slate-700 focus:ring-2 focus:ring-sky-500 focus:outline-none w-48 sm:w-64">
+                <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="pullDataFromGoogleSheets()" class="px-3.5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm" title="Tarik seluruh data dari Google Sheet ke Laporan Harian">
+              <i class="fa-solid fa-cloud-arrow-down"></i> Tarik Data Google Sheet
+            </button>
+            <button onclick="syncAllRecordsToGoogleSheets()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+              <i class="fa-solid fa-cloud-arrow-up"></i> Sync Ke Google Sheets
+            </button>
+            <button onclick="exportToCSV()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+              <i class="fa-solid fa-file-excel"></i> Ekspor CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Summary Counters -->
+        <div class="grid grid-cols-2 md:grid-cols-4 border-b border-slate-200 bg-slate-50/50 divide-x divide-slate-200">
+          <div class="p-4 text-center">
+            <div class="text-[10px] font-bold text-slate-500 uppercase">Total JO</div>
+            <div id="statTotalJO" class="text-xl font-bold text-slate-800 mt-0.5">0</div>
+          </div>
+          <div class="p-4 text-center">
+            <div class="text-[10px] font-bold text-slate-500 uppercase">Total Items / Size</div>
+            <div id="statTotalItems" class="text-xl font-bold text-sky-600 mt-0.5">0</div>
+          </div>
+          <div class="p-4 text-center">
+            <div class="text-[10px] font-bold text-slate-500 uppercase">Total Quantity (Pcs)</div>
+            <div id="statTotalQty" class="text-xl font-bold text-emerald-600 mt-0.5">0</div>
+          </div>
+          <div class="p-4 text-center">
+            <div class="text-[10px] font-bold text-slate-500 uppercase">Total Operator</div>
+            <div id="statTotalOperators" class="text-xl font-bold text-indigo-600 mt-0.5">0</div>
+          </div>
+        </div>
+
+        <!-- Report Table -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-100/80 text-[11px] font-bold text-slate-600 border-b border-slate-200">
+                <th class="py-3 px-4">No. JO / PO</th>
+                <th class="py-3 px-4">Konsumen & Brand</th>
+                <th class="py-3 px-4">Detail Items (Bahan, Ukuran & QTY)</th>
+                <th class="py-3 px-4">Operator</th>
+                <th class="py-3 px-4">Finishing</th>
+                <th class="py-3 px-4">Shift & Penanggung Jawab</th>
+                <th class="py-3 px-4 text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="reportTableBody" class="divide-y divide-slate-200 text-xs">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- TAB 3: GRAFIK & STATISTIK -->
+    <section id="tab-grafik" class="tab-content hidden space-y-6">
+      
+      <!-- Filter Statistik -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-chart-line text-sky-600 text-base"></i>
+          <div>
+            <h3 class="text-xs font-bold text-slate-800">Ringkasan Statistik Akumulasi Data</h3>
+            <p class="text-[11px] text-slate-500">Analisis otomatis dari seluruh data unik yang telah diinput.</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-semibold text-slate-600">Rentang Waktu:</label>
+          <select id="statsTimeFilter" onchange="renderStats()" class="bg-slate-50 border border-slate-300 text-xs font-bold text-slate-700 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+            <option value="today">Hari Ini</option>
+            <option value="all">Semua Tanggal (Total Akumulasi)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-boxes-stacked text-sky-600"></i> Rekap Bahan Terbanyak
+          </h3>
+          <div id="statsBahanList" class="space-y-3 text-xs">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-gears text-indigo-600"></i> Mesin Terpakai
+          </h3>
+          <div id="statsMesinList" class="space-y-3 text-xs">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-user-gear text-emerald-600"></i> Kontribusi Operator
+          </h3>
+          <div id="statsOperatorList" class="space-y-3 text-xs">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 4: GOOGLE SHEET API -->
+    <section id="tab-api" class="tab-content hidden space-y-6">
+      
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
+        <div>
+          <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-cloud-arrow-up text-sky-600"></i> Integrasi Google Sheets API
+          </h2>
+          <p class="text-xs text-slate-500 mt-1">Hubungkan aplikasi FinishLog dengan spreadsheet kantor Anda agar seluruh catatan finishing tersimpan otomatis.</p>
+        </div>
+
+        <!-- URL Configuration Form -->
+        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+          <label class="block text-xs font-bold text-slate-700">Google Apps Script Web App URL</label>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input type="url" id="googleScriptUrlInput" placeholder="https://script.google.com/macros/s/AKfycb.../exec" class="flex-1 text-xs bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+            <button onclick="testGoogleScriptConnection()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-plug"></i> Tes Koneksi
+            </button>
+            <button onclick="saveGoogleScriptUrl()" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-floppy-disk"></i> Simpan URL
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-500">Pastikan URL berakhiran <code class="bg-slate-200 px-1 rounded text-slate-700 font-mono">/exec</code>.</p>
+        </div>
+
+        <!-- Google Apps Script Code Box -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-700">Kode Google Apps Script (Code.gs)</span>
+            <button onclick="copyAppsScriptCode()" class="px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-bold transition flex items-center gap-1">
+              <i class="fa-regular fa-copy"></i> Salin Kode
+            </button>
+          </div>
+          <pre class="bg-slate-900 text-sky-300 p-4 rounded-xl text-xs font-mono overflow-x-auto leading-relaxed border border-slate-800" id="appsScriptCodeBlock">
+function doPost(e) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Laporan Finishing");
+    
+    // Auto create sheet tab if missing
+    if (!sheet) {
+      sheet = ss.insertSheet("Laporan Finishing");
+      sheet.appendRow([
+        "Timestamp", "Tanggal", "No JO", "No PO", "Nama Konsumen", 
+        "Brand", "Bahan / Item", "Ukuran", "QTY", "Mesin", 
+        "Operator", "Jenis Finishing", "Catatan", "Shift", 
+        "Kepala Finishing", "Kepala Shift"
+      ]);
+      sheet.getRange(1, 1, 1, 16).setFontWeight("bold").setBackground("#e2e8f0");
+    }
+    
+    var data = JSON.parse(e.postData.contents);
+    var timestamp = new Date();
+    
+    // Check if items array exists (multi-item support)
+    if (data.items && data.items.length > 0) {
+      for (var i = 0; i < data.items.length; i++) {
+        var item = data.items[i];
+        sheet.appendRow([
+          timestamp,
+          data.tanggal || "",
+          data.noJO || "",
+          data.noPO || "",
+          data.konsumen || "",
+          data.brand || "",
+          item.bahan || "",
+          item.ukuran || "",
+          item.qty || 0,
+          item.mesin || "",
+          Array.isArray(data.operator) ? data.operator.join(", ") : (data.operator || ""),
+          data.finishing || "",
+          data.catatan || "",
+          data.shift || "",
+          data.kepalaFinishing || "",
+          data.kepalaShift || ""
+        ]);
+      }
+    } else {
+      sheet.appendRow([
+        timestamp,
+        data.tanggal || "",
+        data.noJO || "",
+        data.noPO || "",
+        data.konsumen || "",
+        data.brand || "",
+        data.bahan || "",
+        data.ukuran || "",
+        data.qty || 0,
+        data.mesin || "",
+        Array.isArray(data.operator) ? data.operator.join(", ") : (data.operator || ""),
+        data.finishing || "",
+        data.catatan || "",
+        data.shift || "",
+        data.kepalaFinishing || "",
+        data.kepalaShift || ""
+      ]);
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({ "status": "success", "message": "Data berhasil disimpan" }))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ "status": "error", "message": err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet(e) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Laporan Finishing");
+    if (!sheet) {
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", data: [] }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var rows = sheet.getDataRange().getValues();
+    if (rows.length <= 1) {
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", data: [] }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var recordsMap = {};
+    for (var i = 1; i < rows.length; i++) {
+      var r = rows[i];
+      if (!r[2]) continue;
+      
+      var noJO = String(r[2]).trim();
+      var itemObj = {
+        bahan: String(r[6] || ""),
+        ukuran: String(r[7] || ""),
+        qty: Number(r[8]) || 0,
+        mesin: String(r[9] || "")
+      };
+      
+      if (!recordsMap[noJO]) {
+        var opArr = String(r[10] || "").split(",").map(function(s){ return s.trim(); }).filter(Boolean);
+        var tgl = r[1] instanceof Date ? Utilities.formatDate(r[1], Session.getScriptTimeZone(), "yyyy-MM-dd") : String(r[1] || "");
+        recordsMap[noJO] = {
+          id: "gs_" + noJO,
+          tanggal: tgl,
+          noJO: noJO,
+          noPO: String(r[3] || ""),
+          konsumen: String(r[4] || ""),
+          brand: String(r[5] || ""),
+          items: [itemObj],
+          operator: opArr,
+          finishing: String(r[11] || ""),
+          catatan: String(r[12] || ""),
+          shift: String(r[13] || ""),
+          kepalaFinishing: String(r[14] || ""),
+          kepalaShift: String(r[15] || ""),
+          timestamp: r[0] ? new Date(r[0]).toISOString() : new Date().toISOString()
+        };
+      } else {
+        recordsMap[noJO].items.push(itemObj);
+      }
+    }
+    
+    var resultList = [];
+    for (var k in recordsMap) {
+      resultList.push(recordsMap[k]);
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({ status: "success", data: resultList }))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}</pre>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <script>
+    /* Global Variables & State */
+    let itemCounter = 0;
+    let selectedOperators = [];
+    let appData = [];
+    let googleScriptUrl = '';
+    let recordToDeleteId = null;
+
+    const STORAGE_KEY_DATA = 'finishlog_data_v2.5';
+    const STORAGE_KEY_GS_URL = 'finishlog_gs_url_v2.5';
+
+    /**
+     * Helper Fungsi Pembersih Input Desimal (Mendukung Koma & Titik)
+     */
+    function cleanDecimalInput(el) {
+      if (!el || typeof el.value !== 'string') return;
+      
+      // Izinkan hanya angka, titik, dan koma
+      let val = el.value.replace(/[^0-9.,]/g, '');
+      
+      // Hanya izinkan 1 separator desimal pertama (koma atau titik)
+      const match = val.match(/[.,]/);
+      if (match) {
+        const sepIndex = match.index;
+        const sep = match[0];
+        const before = val.substring(0, sepIndex);
+        const after = val.substring(sepIndex + 1).replace(/[.,]/g, '');
+        val = before + sep + after;
+      }
+      
+      el.value = val;
+    }
+
+    function getTodayDateString() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function loadStoredData() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY_DATA);
+        if (stored) {
+          appData = JSON.parse(stored);
+        } else {
+          appData = getSeedInitialData();
+          saveStoredData();
+        }
+      } catch (e) {
+        console.error('Error loading stored data:', e);
+        appData = getSeedInitialData();
+      }
+
+      googleScriptUrl = localStorage.getItem(STORAGE_KEY_GS_URL) || '';
+      const scriptInput = document.getElementById('googleScriptUrlInput');
+      if (scriptInput) scriptInput.value = googleScriptUrl;
+    }
+
+    function saveStoredData() {
+      try {
+        localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(appData));
+      } catch (e) {
+        console.error('Error saving data:', e);
+      }
+    }
+
+    function updateClock() {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      
+      const dateEl = document.getElementById('currentDateDisplay');
+      const timeEl = document.getElementById('currentTimeDisplay');
+      if (dateEl) dateEl.innerText = dateStr;
+      if (timeEl) timeEl.innerText = timeStr;
+    }
+
+    // Page Initialization
+    document.addEventListener('DOMContentLoaded', () => {
+      loadStoredData();
+      checkApiStatus();
+
+      const todayStr = getTodayDateString();
+      const inputDate = document.getElementById('inputDate');
+      const filterDate = document.getElementById('filterReportDate');
+      if (inputDate) inputDate.value = todayStr;
+      if (filterDate) filterDate.value = todayStr;
+
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      const container = document.getElementById('itemsContainer');
+      if (container && container.children.length === 0) {
+        addItemRow();
+      }
+
+      renderOperatorTags();
+    });
+
+    function addItemRow(data = {}) {
+      itemCounter++;
+      const container = document.getElementById('itemsContainer');
+      if (!container) return;
+
+      let uk1 = '';
+      let uk2 = '';
+      if (data.ukuran) {
+        const parts = String(data.ukuran).split(/X|x/).map(s => s.trim());
+        uk1 = parts[0] || '';
+        uk2 = parts[1] || '';
+      }
+
+      const selectedBahan = data.bahan || '';
+
+      const rowId = `itemRow_${itemCounter}`;
+      const itemDiv = document.createElement('div');
+      itemDiv.id = rowId;
+      itemDiv.className = "item-row grid grid-cols-1 md:grid-cols-12 gap-3 p-3 bg-white rounded-xl border border-slate-200 shadow-sm items-end transition";
+
+      itemDiv.innerHTML = `
+        <!-- Nama Bahan (3 cols - Dropdown 1 Kolom) -->
+        <div class="md:col-span-3">
+          <label class="block text-[11px] font-semibold text-slate-600 mb-1">Nama Bahan <span class="text-rose-500">*</span></label>
+          <select class="item-bahan w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none font-semibold text-slate-800" required>
+            <option value="">-- Pilih Jenis Bahan --</option>
+            
+            <optgroup label="--- BAHAN FRONTLITE ---">
+              <option value="FRONTLITE JERMAN" ${selectedBahan === 'FRONTLITE JERMAN' ? 'selected' : ''}>Frontlite Jerman</option>
+              <option value="FRONTLITE KOREA" ${selectedBahan === 'FRONTLITE KOREA' ? 'selected' : ''}>Frontlite Korea</option>
+              <option value="FRONTLITE 440 GSM" ${selectedBahan === 'FRONTLITE 440 GSM' ? 'selected' : ''}>Frontlite 440 gsm</option>
+              <option value="FRONTLITE 380 GSM" ${selectedBahan === 'FRONTLITE 380 GSM' ? 'selected' : ''}>Frontlite 380 gsm</option>
+              <option value="FRONTLITE 340 GSM" ${selectedBahan === 'FRONTLITE 340 GSM' ? 'selected' : ''}>Frontlite 340 gsm</option>
+              <option value="FRONTLITE 300 GSM" ${selectedBahan === 'FRONTLITE 300 GSM' ? 'selected' : ''}>Frontlite 300 gsm</option>
+              <option value="FRONTLITE 280 GSM" ${selectedBahan === 'FRONTLITE 280 GSM' ? 'selected' : ''}>Frontlite 280 gsm</option>
+              <option value="FRONTLITE 260 GSM" ${selectedBahan === 'FRONTLITE 260 GSM' ? 'selected' : ''}>Frontlite 260 gsm</option>
+              <option value="FRONTLITE 240 GSM" ${selectedBahan === 'FRONTLITE 240 GSM' ? 'selected' : ''}>Frontlite 240 gsm</option>
+              <option value="FRONTLITE MESH" ${selectedBahan === 'FRONTLITE MESH' ? 'selected' : ''}>Frontlite Mesh</option>
+            </optgroup>
+
+            <optgroup label="--- BAHAN BACKLITE ---">
+              <option value="BACKLITE JERMAN (1 SIDE)" ${selectedBahan === 'BACKLITE JERMAN (1 SIDE)' ? 'selected' : ''}>Backlite Jerman - 1 Side</option>
+              <option value="BACKLITE JERMAN (2 SIDE)" ${selectedBahan === 'BACKLITE JERMAN (2 SIDE)' ? 'selected' : ''}>Backlite Jerman - 2 Side</option>
+              <option value="BACKLITE KOREA (1 SIDE)" ${selectedBahan === 'BACKLITE KOREA (1 SIDE)' ? 'selected' : ''}>Backlite Korea - 1 Side</option>
+              <option value="BACKLITE KOREA (2 SIDE)" ${selectedBahan === 'BACKLITE KOREA (2 SIDE)' ? 'selected' : ''}>Backlite Korea - 2 Side</option>
+            </optgroup>
+
+            <optgroup label="--- BAHAN STIKER ---">
+              <option value="STIKER RITRAMA BO" ${selectedBahan === 'STIKER RITRAMA BO' ? 'selected' : ''}>Stiker Ritrama BO</option>
+              <option value="STIKER RITRAMA GREY" ${selectedBahan === 'STIKER RITRAMA GREY' ? 'selected' : ''}>Stiker Ritrama Grey</option>
+              <option value="STIKER RITRAMA GLOSS" ${selectedBahan === 'STIKER RITRAMA GLOSS' ? 'selected' : ''}>Stiker Ritrama Gloss</option>
+              <option value="STIKER ONE WAY" ${selectedBahan === 'STIKER ONE WAY' ? 'selected' : ''}>Stiker One Way</option>
+              <option value="STIKER DURATAC GLOSS" ${selectedBahan === 'STIKER DURATAC GLOSS' ? 'selected' : ''}>Stiker Duractac Gloss</option>
+              <option value="STIKER BACKLITE" ${selectedBahan === 'STIKER BACKLITE' ? 'selected' : ''}>Stiker Backlite</option>
+              <option value="STIKER TRANSPARANT" ${selectedBahan === 'STIKER TRANSPARANT' ? 'selected' : ''}>Stiker Transparant</option>
+              <option value="STIKER MAX DECAL" ${selectedBahan === 'STIKER MAX DECAL' ? 'selected' : ''}>Stiker MAX DECAL</option>
+            </optgroup>            
+          </select>
+        </div>
+
+        <!-- Ukuran/m (3 cols: Angka/Koma | X | Angka/Koma) -->
+        <div class="md:col-span-3">
+          <label class="block text-[11px] font-semibold text-slate-600 mb-1">Ukuran (m) <span class="text-rose-500">*</span></label>
+          <div class="flex items-center gap-1">
+            <input type="text" inputmode="decimal" maxlength="6" placeholder="0,0" oninput="cleanDecimalInput(this)" class="item-ukuran1 w-2/5 text-xs bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-center font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition" value="${uk1}" title="Isi angka desimal (bisa gunakan koma atau titik)" required>
+            <input type="text" value="X" readonly class="w-1/5 text-xs bg-slate-100 border border-slate-300 rounded-lg px-1 py-1.5 text-center font-mono font-bold text-slate-600 select-none cursor-not-allowed" title="Perkalian (X)">
+            <input type="text" inputmode="decimal" maxlength="6" placeholder="0,0" oninput="cleanDecimalInput(this)" class="item-ukuran2 w-2/5 text-xs bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-center font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition" value="${uk2}" title="Isi angka desimal (bisa gunakan koma atau titik)" required>
+          </div>
+        </div>
+
+        <!-- Qty (2 cols) - Strictly Numeric -->
+        <div class="md:col-span-2">
+          <label class="block text-[11px] font-semibold text-slate-600 mb-1">QTY (Pcs) <span class="text-rose-500">*</span></label>
+          <input type="number" inputmode="numeric" min="1" class="item-qty w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none" placeholder="..." oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="${data.qty || ''}" required>
+        </div>
+
+        <!-- Mesin (2 cols) -->
+        <div class="md:col-span-2">
+          <label class="block text-[11px] font-semibold text-slate-600 mb-1">Mesin</label>
+          <select class="item-mesin w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none">
+            <option value="Pilih Mesin" ${data.mesin === 'Pilih Mesin' ? 'selected' : ''}>--Pilih Mesin--</option>
+            <option value="Scitex" ${data.mesin === 'Scitex' ? 'selected' : ''}>Scitex</option>
+            <option value="Vutek" ${data.mesin === 'Vutek' ? 'selected' : ''}>Vutek</option>
+            <option value="Matan" ${data.mesin === 'Matan' ? 'selected' : ''}>Matan</option>
+            <option value="Flora UV" ${data.mesin === 'Flora UV' ? 'selected' : ''}>Flora UV</option>
+            <option value="Allwin" ${data.mesin === 'Allwin' ? 'selected' : ''}>Allwin</option>
+          </select>
+        </div>
+
+        <!-- No. Mesin (1 col: 01 - 08) -->
+        <div class="md:col-span-1">
+          <label class="block text-[11px] font-semibold text-slate-600 mb-1">No. Mesin</label>
+          <select class="item-nomesin w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-1 py-1.5 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none">
+            <option value="">-</option>
+            <option value="01" ${data.noMesin === '01' ? 'selected' : ''}>01</option>
+            <option value="02" ${data.noMesin === '02' ? 'selected' : ''}>02</option>
+            <option value="03" ${data.noMesin === '03' ? 'selected' : ''}>03</option>
+            <option value="04" ${data.noMesin === '04' ? 'selected' : ''}>04</option>
+            <option value="05" ${data.noMesin === '05' ? 'selected' : ''}>05</option>
+            <option value="06" ${data.noMesin === '06' ? 'selected' : ''}>06</option>
+            <option value="07" ${data.noMesin === '07' ? 'selected' : ''}>07</option>
+            <option value="08" ${data.noMesin === '08' ? 'selected' : ''}>08</option>
+          </select>
+        </div>
+
+        <!-- Delete Action (1 col) -->
+        <div class="md:col-span-1 flex justify-end">
+          <button type="button" onclick="removeItemRow('${rowId}')" class="w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition flex items-center justify-center text-xs" title="Hapus Baris Ukuran">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
+      `;
+
+      container.appendChild(itemDiv);
+    }
+
+    function removeItemRow(rowId) {
+      const container = document.getElementById('itemsContainer');
+      const rows = container.querySelectorAll('.item-row');
+      if (rows.length <= 1) {
+        showToast('Minimal harus ada 1 item/ukuran per JO!', 'warning');
+        return;
+      }
+      const target = document.getElementById(rowId);
+      if (target) target.remove();
+    }
+
+    function handleOperatorKeydown(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addOperatorFromInput();
+      }
+    }
+
+    function addOperatorFromInput() {
+      const input = document.getElementById('operatorInput');
+      if (!input) return;
+      const val = input.value.trim();
+      if (val) {
+        const names = val.split(',').map(n => n.trim()).filter(n => n.length > 0);
+        names.forEach(name => {
+          if (!selectedOperators.includes(name)) {
+            selectedOperators.push(name);
+          }
+        });
+        input.value = '';
+        renderOperatorTags();
+      }
+    }
+
+    function removeOperator(index) {
+      selectedOperators.splice(index, 1);
+      renderOperatorTags();
+    }
+
+    function renderOperatorTags() {
+      const container = document.getElementById('operatorTagsList');
+      if (!container) return;
+
+      container.innerHTML = '';
+      if (selectedOperators.length === 0) {
+        container.innerHTML = `<span class="text-xs text-slate-400 italic">Belum ada operator ditambahkan</span>`;
+        return;
+      }
+
+      selectedOperators.forEach((op, index) => {
+        const tag = document.createElement('span');
+        tag.className = 'inline-flex items-center gap-1.5 px-3 py-1 bg-sky-100 text-sky-800 rounded-lg text-xs font-bold border border-sky-200 shadow-sm';
+        tag.innerHTML = `
+          <i class="fa-solid fa-user-check text-[10px]"></i>
+          <span>${escapeHtml(op)}</span>
+          <button type="button" onclick="removeOperator(${index})" class="text-sky-600 hover:text-rose-600 ml-1 transition">
+            <i class="fa-solid fa-xmark text-xs"></i>
+          </button>
+        `;
+        container.appendChild(tag);
+      });
+    }
+
+    function handleFormSubmit(e) {
+      e.preventDefault();
+
+      if (selectedOperators.length === 0) {
+        showToast('Harap tambahkan minimal 1 Operator Finishing!', 'warning');
+        document.getElementById('operatorInput').focus();
+        return;
+      }
+
+      const inputJOVal = document.getElementById('inputJO').value.trim();
+
+      // CEK VALIDASI DUPLIKASI NO. JO
+      const duplicateRecord = appData.find(r => r.noJO === inputJOVal);
+      if (duplicateRecord) {
+        showToast(`No. JO ${inputJOVal} sudah pernah diinput sebelumnya (Konsumen: ${duplicateRecord.konsumen})! Data ganda tidak diizinkan.`, 'error');
+        document.getElementById('inputJO').focus();
+        return;
+      }
+
+      const po1 = document.getElementById('inputPO1')?.value.trim() || '';
+      const po2 = document.getElementById('inputPO2')?.value.trim() || 'POPROC';
+      const po3 = document.getElementById('inputPO3')?.value.trim() || '';
+      const combinedPO = (po1 || po3) ? `${po1}-${po2}-${po3}` : '';
+
+      // Collect items
+      const itemRows = document.querySelectorAll('.item-row');
+      const items = [];
+      itemRows.forEach(row => {
+        const bahan = row.querySelector('.item-bahan').value.trim();
+        const uk1 = row.querySelector('.item-ukuran1')?.value.trim() || '';
+        const uk2 = row.querySelector('.item-ukuran2')?.value.trim() || '';
+        const ukuran = (uk1 && uk2) ? `${uk1} X ${uk2}` : (uk1 || uk2);
+        const qty = parseInt(row.querySelector('.item-qty').value) || 0;
+        const rawMesin = row.querySelector('.item-mesin').value;
+        const noMesin = row.querySelector('.item-nomesin')?.value || '';
+
+        let mesin = rawMesin !== 'Pilih Mesin' ? rawMesin : '';
+        if (noMesin) {
+          mesin = mesin ? `${mesin} (${noMesin})` : `No. ${noMesin}`;
+        }
+
+        if (bahan && ukuran && qty > 0) {
+          items.push({ bahan, ukuran, qty, mesin, noMesin: noMesin || '' });
+        }
+      });
+
+      if (items.length === 0) {
+        showToast('Harap isi detail bahan, ukuran, dan QTY dengan benar!', 'warning');
+        return;
+      }
+
+      // Merging duplicates per JO input row
+      const mergedItemsMap = {};
+      items.forEach(it => {
+        const key = `${it.bahan}_${it.ukuran}_${it.mesin}`;
+        if (mergedItemsMap[key]) {
+          mergedItemsMap[key].qty += it.qty;
+        } else {
+          mergedItemsMap[key] = { ...it };
+        }
+      });
+      const finalItems = Object.values(mergedItemsMap);
+
+      const record = {
+        id: 'rec_' + Date.now(),
+        tanggal: document.getElementById('inputDate').value || getTodayDateString(),
+        noJO: inputJOVal,
+        noPO: combinedPO,
+        konsumen: document.getElementById('inputKonsumen').value.trim(),
+        brand: document.getElementById('inputBrand').value.trim(),
+        items: finalItems,
+        operator: [...selectedOperators],
+        finishing: document.getElementById('formFinishing').value.trim(),
+        catatan: document.getElementById('inputCatatan').value.trim(),
+        shift: document.getElementById('inputShift').value,
+        kepalaFinishing: document.getElementById('inputKepalaFinishing').value.trim(),
+        kepalaShift: document.getElementById('inputKepalaShift').value.trim(),
+        timestamp: new Date().toISOString()
+      };
+
+      appData.unshift(record);
+      saveStoredData();
+
+      showToast('Laporan Finishing berhasil disimpan!', 'success');
+
+      if (googleScriptUrl) {
+        syncSingleRecordToGoogleSheets(record);
+      }
+
+      resetForm();
+      switchTab('laporan');
+    }
+
+    function resetForm() {
+      document.getElementById('finishingForm').reset();
+      selectedOperators = [];
+      renderOperatorTags();
+
+      const container = document.getElementById('itemsContainer');
+      if (container) {
+        container.innerHTML = '';
+        addItemRow();
+      }
+
+      document.getElementById('inputDate').value = getTodayDateString();
+    }
+
+    function renderReportTable() {
+      const tbody = document.getElementById('reportTableBody');
+      if (!tbody) return;
+
+      const filterDate = document.getElementById('filterReportDate').value;
+      const searchQuery = (document.getElementById('searchReportInput').value || '').toLowerCase();
+
+      let filtered = appData;
+
+      if (filterDate) {
+        filtered = filtered.filter(r => r.tanggal === filterDate);
+      }
+
+      if (searchQuery) {
+        filtered = filtered.filter(r => {
+          const itemsStr = r.items ? r.items.map(i => `${i.bahan} ${i.ukuran}`).join(' ') : '';
+          const opStr = Array.isArray(r.operator) ? r.operator.join(' ') : (r.operator || '');
+          return (r.noJO || '').toLowerCase().includes(searchQuery) ||
+                 (r.noPO || '').toLowerCase().includes(searchQuery) ||
+                 (r.konsumen || '').toLowerCase().includes(searchQuery) ||
+                 (r.brand || '').toLowerCase().includes(searchQuery) ||
+                 itemsStr.toLowerCase().includes(searchQuery) ||
+                 opStr.toLowerCase().includes(searchQuery);
+        });
+      }
+
+      updateReportCounters(filtered);
+      tbody.innerHTML = '';
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="py-12 text-center text-slate-400">
+              <i class="fa-solid fa-folder-open text-3xl mb-2 block text-slate-300"></i>
+              Tidak ada catatan finishing untuk filter tanggal ini.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      filtered.forEach(rec => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition border-b border-slate-200/80";
+
+        let itemsHtml = '';
+        if (rec.items && rec.items.length > 0) {
+          itemsHtml = rec.items.map(it => `
+            <div class="py-1 border-b border-slate-100 last:border-none flex items-center justify-between gap-2">
+              <span class="font-semibold text-slate-800">${escapeHtml(it.bahan)} <span class="text-slate-400">(${escapeHtml(it.ukuran)})</span></span>
+              <span class="px-2 py-0.5 bg-sky-100 text-sky-800 font-bold rounded text-[10px]">${it.qty.toLocaleString()} pcs</span>
+            </div>
+          `).join('');
+        }
+
+        const operatorsText = Array.isArray(rec.operator) ? rec.operator.join(', ') : (rec.operator || '-');
+
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-bold text-sky-700">
+            <div>${escapeHtml(rec.noJO)}</div>
+            ${rec.noPO ? `<div class="text-[10px] text-slate-400 font-normal">PO: ${escapeHtml(rec.noPO)}</div>` : ''}
+          </td>
+          <td class="py-3 px-4">
+            <div class="font-bold text-slate-800">${escapeHtml(rec.konsumen)}</div>
+            ${rec.brand ? `<div class="text-[10px] text-slate-500">${escapeHtml(rec.brand)}</div>` : ''}
+          </td>
+          <td class="py-3 px-4 min-w-[220px]">
+            ${itemsHtml}
+          </td>
+          <td class="py-3 px-4 text-slate-700">
+            <span class="inline-flex items-center gap-1 font-medium"><i class="fa-solid fa-users text-[10px] text-slate-400"></i> ${escapeHtml(operatorsText)}</span>
+          </td>
+          <td class="py-3 px-4 text-slate-800 font-medium">
+            ${escapeHtml(rec.finishing)}
+            ${rec.catatan ? `<div class="text-[10px] text-slate-500 italic mt-0.5">Cat: ${escapeHtml(rec.catatan)}</div>` : ''}
+          </td>
+          <td class="py-3 px-4">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">${escapeHtml(rec.shift || 'Shift 1')}</span>
+            ${rec.kepalaFinishing ? `<div class="text-[10px] text-slate-400 mt-0.5">Kabag: ${escapeHtml(rec.kepalaFinishing)}</div>` : ''}
+          </td>
+          <td class="py-3 px-4 text-center">
+            <button onclick="deleteRecord('${rec.id}')" class="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition inline-flex items-center justify-center text-xs" title="Hapus Laporan">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+
+      renderStats();
+    }
+
+    function updateReportCounters(data) {
+      let totalJO = data.length;
+      let totalItems = 0;
+      let totalQty = 0;
+      let opSet = new Set();
+
+      data.forEach(r => {
+        if (r.items) {
+          totalItems += r.items.length;
+          r.items.forEach(it => totalQty += (parseInt(it.qty) || 0));
+        }
+        if (Array.isArray(r.operator)) {
+          r.operator.forEach(op => opSet.add(op));
+        }
+      });
+
+      document.getElementById('statTotalJO').innerText = totalJO;
+      document.getElementById('statTotalItems').innerText = totalItems;
+      document.getElementById('statTotalQty').innerText = totalQty.toLocaleString();
+      document.getElementById('statTotalOperators').innerText = opSet.size;
+    }
+
+    function deleteRecord(id) {
+      recordToDeleteId = id;
+      const modal = document.getElementById('deleteConfirmModal');
+      const confirmBtn = document.getElementById('confirmDeleteBtn');
+      if (modal && confirmBtn) {
+        modal.classList.remove('hidden');
+        confirmBtn.onclick = function() {
+          if (recordToDeleteId) {
+            appData = appData.filter(r => r.id !== recordToDeleteId);
+            saveStoredData();
+            renderReportTable();
+            showToast('Laporan berhasil dihapus', 'info');
+            closeDeleteModal();
+          }
+        };
+      }
+    }
+
+    function closeDeleteModal() {
+      recordToDeleteId = null;
+      const modal = document.getElementById('deleteConfirmModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-sky-600', 'text-white', 'shadow-sm');
+        btn.classList.add('text-slate-300', 'hover:text-white', 'hover:bg-slate-700');
+      });
+
+      const activeTab = document.getElementById(`tab-${tabId}`);
+      const activeBtn = document.getElementById(`tabBtn-${tabId}`);
+
+      if (activeTab) activeTab.classList.remove('hidden');
+      if (activeBtn) {
+        activeBtn.classList.remove('text-slate-300', 'hover:text-white', 'hover:bg-slate-700');
+        activeBtn.classList.add('bg-sky-600', 'text-white', 'shadow-sm');
+      }
+
+      if (tabId === 'laporan') renderReportTable();
+      if (tabId === 'grafik') renderStats();
+    }
+
+    function renderStats() {
+      const bahanMap = {};
+      const mesinMap = {};
+      const opMap = {};
+
+      const timeFilter = document.getElementById('statsTimeFilter')?.value || 'today';
+      const todayStr = getTodayDateString();
+
+      const recordsToAnalyze = timeFilter === 'today' 
+        ? appData.filter(r => r.tanggal === todayStr)
+        : appData;
+
+      recordsToAnalyze.forEach(r => {
+        if (r.items) {
+          r.items.forEach(it => {
+            bahanMap[it.bahan] = (bahanMap[it.bahan] || 0) + (parseInt(it.qty) || 1);
+            if (it.mesin) {
+              mesinMap[it.mesin] = (mesinMap[it.mesin] || 0) + 1;
+            }
+          });
+        }
+        if (Array.isArray(r.operator)) {
+          r.operator.forEach(op => {
+            opMap[op] = (opMap[op] || 0) + 1;
+          });
+        }
+      });
+
+      renderBarList('statsBahanList', bahanMap, 'pcs');
+      renderBarList('statsMesinList', mesinMap, 'kali');
+      renderBarList('statsOperatorList', opMap, 'JO');
+    }
+
+    function renderBarList(containerId, dataMap, unit) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      container.innerHTML = '';
+      const keys = Object.keys(dataMap).sort((a,b) => dataMap[b] - dataMap[a]);
+
+      if (keys.length === 0) {
+        container.innerHTML = `<div class="text-slate-400 text-xs italic text-center py-4">Belum ada data untuk periode ini</div>`;
+        return;
+      }
+
+      const maxVal = Math.max(...Object.values(dataMap));
+
+      keys.forEach(k => {
+        const val = dataMap[k];
+        const pct = maxVal > 0 ? Math.round((val / maxVal) * 100) : 0;
+
+        container.innerHTML += `
+          <div>
+            <div class="flex justify-between font-semibold mb-1">
+              <span class="text-slate-700">${escapeHtml(k)}</span>
+              <span class="text-slate-500 font-bold">${val.toLocaleString()} ${unit}</span>
+            </div>
+            <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div class="h-full bg-sky-500 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function saveGoogleScriptUrl() {
+      const url = document.getElementById('googleScriptUrlInput').value.trim();
+      googleScriptUrl = url;
+      localStorage.setItem(STORAGE_KEY_GS_URL, url);
+      checkApiStatus();
+      showToast('URL Google Apps Script berhasil disimpan!', 'success');
+    }
+
+    function checkApiStatus() {
+      const badge = document.getElementById('apiStatusBadge');
+      const dot = document.getElementById('apiStatusDot');
+      const txt = document.getElementById('apiStatusText');
+
+      if (googleScriptUrl) {
+        dot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+        txt.innerText = "API: Terhubung";
+        badge.className = "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-950/40 text-emerald-300 border border-emerald-800/50";
+      } else {
+        dot.className = "w-2 h-2 rounded-full bg-amber-500";
+        txt.innerText = "API: Belum Diset";
+        badge.className = "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700";
+      }
+    }
+
+    function testGoogleScriptConnection() {
+      const url = document.getElementById('googleScriptUrlInput').value.trim();
+      if (!url) {
+        showToast('Masukkan URL Google Apps Script terlebih dahulu!', 'warning');
+        return;
+      }
+
+      showToast('Menguji koneksi ke Google Sheet...', 'info');
+
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.status === 'active') {
+            showToast('Koneksi Berhasil! API Finishing Aktif.', 'success');
+            googleScriptUrl = url;
+            localStorage.setItem(STORAGE_KEY_GS_URL, url);
+            checkApiStatus();
+          } else {
+            showToast('Respon tidak dikenal dari Google Script', 'warning');
+          }
+        })
+        .catch(err => {
+          showToast('Gagal terhubung. Pastikan Web App Deploy = Anyone', 'error');
+        });
+    }
+
+    function syncSingleRecordToGoogleSheets(record) {
+      if (!googleScriptUrl) return;
+
+      fetch(googleScriptUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(record)
+      }).then(() => {
+        showToast('Data otomatis tersimpan ke Google Sheets', 'success');
+      }).catch(err => {
+        console.error('Sync error:', err);
+      });
+    }
+
+    function pullDataFromGoogleSheets() {
+      if (!googleScriptUrl) {
+        showToast('Atur dan simpan URL Google Apps Script terlebih dahulu!', 'warning');
+        switchTab('api');
+        return;
+      }
+
+      showToast('Menarik data terbaru dari Google Sheets...', 'info');
+
+      fetch(googleScriptUrl)
+        .then(res => res.json())
+        .then(resData => {
+          if (resData && resData.status === 'success' && Array.isArray(resData.data)) {
+            const fetchedRecords = resData.data;
+            if (fetchedRecords.length === 0) {
+              showToast('Tidak ada data ditemukan di Google Sheets', 'info');
+              return;
+            }
+
+            let newCount = 0;
+            let updatedCount = 0;
+
+            fetchedRecords.forEach(remote => {
+              const existingIdx = appData.findIndex(local => String(local.noJO) === String(remote.noJO));
+              if (existingIdx >= 0) {
+                appData[existingIdx] = { ...appData[existingIdx], ...remote };
+                updatedCount++;
+              } else {
+                appData.unshift(remote);
+                newCount++;
+              }
+            });
+
+            saveStoredData();
+            renderReportTable();
+
+            showToast(`Selesai! ${newCount} data baru ditambahkan, ${updatedCount} data diperbarui.`, 'success');
+          } else if (resData && resData.status === 'active') {
+            showToast('Salin ulang & deploy Kode Google Apps Script terbaru dari tab API agar fitur narik data aktif!', 'warning');
+            switchTab('api');
+          } else {
+            showToast('Gagal menarik data. Format respon Google Sheets tidak sesuai.', 'error');
+          }
+        })
+        .catch(err => {
+          console.error('Pull data error:', err);
+          showToast('Gagal menarik data dari Google Sheets. Cek koneksi atau URL Apps Script.', 'error');
+        });
+    }
+
+    function syncAllRecordsToGoogleSheets() {
+      if (!googleScriptUrl) {
+        showToast('Atur URL Google Apps Script terlebih dahulu!', 'warning');
+        switchTab('api');
+        return;
+      }
+
+      showToast(`Mengirim ${appData.length} catatan ke Google Sheets...`, 'info');
+
+      let count = 0;
+      appData.forEach(rec => {
+        fetch(googleScriptUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(rec)
+        }).then(() => {
+          count++;
+          if (count === appData.length) {
+            showToast('Seluruh data berhasil disinkronisasi ke Google Sheets!', 'success');
+          }
+        });
+      });
+    }
+
+    function exportToCSV() {
+      if (appData.length === 0) {
+        showToast('Tidak ada data untuk diekspor', 'warning');
+        return;
+      }
+
+      let csv = "Tanggal,No JO,No PO,Konsumen,Brand,Bahan,Ukuran,QTY,Mesin,Operator,Finishing,Catatan,Shift\n";
+
+      appData.forEach(r => {
+        const ops = Array.isArray(r.operator) ? r.operator.join(';') : r.operator;
+        if (r.items) {
+          r.items.forEach(it => {
+            csv += `"${r.tanggal}","${r.noJO}","${r.noPO}","${r.konsumen}","${r.brand}","${it.bahan}","${it.ukuran}","${it.qty}","${it.mesin}","${ops}","${r.finishing}","${r.catatan}","${r.shift}"\n`;
+          });
+        }
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `FinishLog_Export_${getTodayDateString()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function copyAppsScriptCode() {
+      const code = document.getElementById('appsScriptCodeBlock').innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        showToast('Kode Google Apps Script disalin ke clipboard!', 'success');
+      }).catch(() => {
+        showToast('Gagal menyalin kode', 'error');
+      });
+    }
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+
+      const toast = document.createElement('div');
+      let bg = 'bg-slate-800 text-white';
+      let icon = 'fa-circle-info';
+
+      if (type === 'success') { bg = 'bg-emerald-600 text-white'; icon = 'fa-circle-check'; }
+      if (type === 'warning') { bg = 'bg-amber-600 text-white'; icon = 'fa-triangle-exclamation'; }
+      if (type === 'error') { bg = 'bg-rose-600 text-white'; icon = 'fa-circle-xmark'; }
+
+      toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl text-xs font-semibold ${bg} transition transform duration-300 ease-out translate-y-2 opacity-0`;
+      toast.innerHTML = `<i class="fa-solid ${icon} text-sm"></i> <span>${escapeHtml(msg)}</span>`;
+
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function getSeedInitialData() {
+      const today = getTodayDateString();
+      return [
+        {
+          id: 'seed_1',
+          tanggal: today,
+          noJO: '882101',
+          noPO: '001-POPROC-2026',
+          konsumen: 'PT MAJU SEJAHTERA',
+          brand: 'KATALOG 2026',
+          items: [
+            { bahan: 'FRONTLITE KOREA', ukuran: '1,5 X 2,4', qty: 100, mesin: 'Scitex (01)' }
+          ],
+          operator: ['BUDI', 'ANDI'],
+          finishing: 'LAMINATING DOFF + POTONG JADI + PACKING',
+          catatan: 'SUDAH DI-PACKING KARDUS & SIAP KIRIM',
+          shift: 'Shift 1',
+          kepalaFinishing: 'SURYADI',
+          kepalaShift: 'HERMAN',
+          timestamp: new Date().toISOString()
+        }
+      ];
+    }
+  </script>
+</body>
+</html>
